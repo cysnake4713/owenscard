@@ -16,6 +16,7 @@ import akka.actor.ActorLogging
 object GameRoom {
 
   implicit val timeout = Timeout(1 second)
+  var users = Map.empty[String, Promise[(Iteratee[JsValue, _], Enumerator[JsValue])]]
 
   lazy val default = {
     val roomActor = Akka.system.actorOf(Props[GameRoom])
@@ -23,37 +24,25 @@ object GameRoom {
   }
 
   def join(username: String): Promise[(Iteratee[JsValue, _], Enumerator[JsValue])] = {
+
     (default ? JoinGame(username)).asPromise.map {
-
       case Connected(enumerator) =>
-
-        // Create an Iteratee to consume the feed
         val iteratee = Iteratee.foreach[JsValue] { event =>
-          //TODO:
           default ! GetMessage(username, event)
-          //          default ! Talk(username, (event \ "text").as[String])
         }.mapDone { _ =>
           default ! Quit(username)
         }
-
         (iteratee, enumerator)
 
       case CannotConnect(error) =>
-
         // Connection error
-
         // A finished Iteratee sending EOF
         val iteratee = Done[JsValue, Unit]((), Input.EOF)
-
         // Send an error and close the socket
         val enumerator = Enumerator[JsValue](JsObject(Seq("error" -> JsString(error)))).andThen(Enumerator.enumInput(Input.EOF))
-
         (iteratee, enumerator)
-
     }
-
   }
-
 }
 
 class GameRoom extends Actor with akka.actor.ActorLogging {
@@ -82,7 +71,7 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
         case Some("ready") => {
           system.log.debug("{} ready to start game", name)
           members(name).updated("status", true)
-          if ((true /: members) { (result, ele) => result || ele._2.get("status").asInstanceOf[Boolean] }) {
+          if ((true /: members) { (result, ele) => result && ele._2.get("status").asInstanceOf[Boolean] }) {
             Poker.shufflePoker()
             members.foreach(ele => {
               val pokers = Poker.dialPoker(5)

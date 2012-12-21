@@ -41,13 +41,8 @@ object Application extends Controller {
 
   }
 
-  def playRoom(userName: Option[String]) = Action { implicit request =>
-    userName.filterNot(_.isEmpty).map { userName =>
-      Ok(views.html.test(userName))
-    }.getOrElse {
-      Redirect(routes.Application.index).flashing(
-        "error" -> "当前用户名不可用.")
-    }
+  def playRoom(userName: String) = Action { implicit request =>
+    Ok(views.html.poker())
   }
 
   def gameOn(userName: String) = WebSocket.async[JsValue] { request =>

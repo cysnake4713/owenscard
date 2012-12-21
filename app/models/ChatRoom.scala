@@ -56,7 +56,11 @@ object ChatRoom {
 
         // Create an Iteratee to consume the feed
         val iteratee = Iteratee.foreach[JsValue] { event =>
-          default ! Talk(username, (event \ "text").as[String])
+          if ((event \ "kind").as[String] == "ready") {
+            default ! Ready(username)
+          }else{
+	        default ! Talk(username, (event \ "text").as[String])
+          }
         }.mapDone { _ =>
           default ! Quit(username)
         }
@@ -81,10 +85,11 @@ object ChatRoom {
 
 }
 
-class ChatRoom extends Actor {
+class ChatRoom extends Actor with akka.actor.ActorLogging {
+  import context._
 
   var members = Map.empty[String, PushEnumerator[JsValue]]
-
+  var membersStatus = Map.empty[String, Boolean]
   def receive = {
 
     case Join(username) => {
@@ -94,7 +99,7 @@ class ChatRoom extends Actor {
         sender ! CannotConnect(Messages("username.used"))
       } else {
         members = members + (username -> channel)
-
+        membersStatus += (username -> false)
         sender ! Connected(channel)
       }
     }
@@ -109,7 +114,17 @@ class ChatRoom extends Actor {
 
     case Quit(username) => {
       members = members - username
+      membersStatus = membersStatus - username
       notifyAll("quit", username, Messages("leave.room"))
+    }
+
+    case Ready(username) => {
+      membersStatus = membersStatus.updated(username, true)
+      system.log.debug("chatRoom:ready status {}", membersStatus)
+      if ((true /: membersStatus) { _ && _._2 }) {
+        notifyAll("go", "", "");
+//        self ! Quit(username)
+      }
     }
 
   }
@@ -129,6 +144,7 @@ class ChatRoom extends Actor {
 
 }
 
+case class Ready(username: String)
 case class Join(username: String)
 case class Quit(username: String)
 case class Talk(username: String, text: String)
