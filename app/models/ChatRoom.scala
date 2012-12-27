@@ -123,7 +123,6 @@ class ChatRoom extends Actor with akka.actor.ActorLogging {
       system.log.debug("chatRoom:ready status {}", membersStatus)
       if ((true /: membersStatus) { _ && _._2 }) {
         notifyAll("go", "", "");
-//        self ! Quit(username)
       }
     }
 

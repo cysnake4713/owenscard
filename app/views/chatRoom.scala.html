@@ -80,7 +80,6 @@
 			})
 			if (data.kind == "go") {
 				chatSocket.close()
-				window.location.href="@routes.Application.playRoom(username)"
 			}
 		}
 
@@ -94,6 +93,9 @@
 		$("#talk").keypress(handleReturnKey)
 
 		chatSocket.onmessage = receiveEvent
+		chatSocket.onclose = function(){
+			window.location.href="@routes.Application.playRoom(username)"
+		}
 
 	})
 </script>

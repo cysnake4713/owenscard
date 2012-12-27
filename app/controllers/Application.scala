@@ -42,7 +42,7 @@ object Application extends Controller {
   }
 
   def playRoom(userName: String) = Action { implicit request =>
-    Ok(views.html.poker())
+    Ok(views.html.poker("a"))
   }
 
   def gameOn(userName: String) = WebSocket.async[JsValue] { request =>

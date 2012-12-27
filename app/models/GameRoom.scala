@@ -58,11 +58,16 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
       if (members.contains(username)) {
         sender ! CannotConnect(Messages("username.used"))
       } else {
-        val member = Map[String, Any](
-          "channel" -> channel,
-          "status" -> false)
-        members = members + (username -> member)
-        sender ! Connected(channel)
+        if (members.size == 5) {
+          sender ! CannotConnect("already have 5 users here.")
+        } else {
+          val member = Map[String, Any](
+            "channel" -> channel,
+            "status" -> false)
+          members = members + (username -> member)
+          sender ! Connected(channel)
+
+        }
       }
     }
 
