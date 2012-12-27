@@ -53,13 +53,13 @@ Poker.Builder = {
 	},
 
 	/*
-	 将图片中的所有扑克初始化放到pokerArray中
+	 * 将图片中的所有扑克初始化放到pokerArray中
 	 */
 	initComopentPokerArray : function() {
 		pokerColor = Poker.CONST.POKER_COLOR;
-		for (var i in Poker.CONST.POKER_COLOR) {
+		for ( var i in Poker.CONST.POKER_COLOR) {
 			Poker.Component.Pokers[pokerColor[i]] = {}
-			for (var j = 0; j < 13; j++) {
+			for ( var j = 0; j < 13; j++) {
 				Poker.Component.Pokers[pokerColor[i]][j] = getPokerByIndex(j, i);
 			}
 		}
@@ -71,21 +71,22 @@ Poker.Builder = {
 Poker.tools = {
 
 	/*
-	 将poker Image加入到指定Layer中
+	 * 将poker Image加入到指定Layer中
 	 */
 	addPokerArrayToLayer : function(pokers, layer) {
-		for (var i in pokers) {
+		for ( var i in pokers) {
 			layer.add(pokers[i]);
 		}
 	},
 
 	/*
-	 由数组message创建poker对象
+	 * 由数组message创建poker对象
 	 */
 	createPokersByMessage : function(message) {
 		var result = new Array();
-		for (var i in message) {
-			var poker = Poker.Component.pokers[message[i][0]][message[i][1]].clone();
+		for ( var i in message) {
+			var poker = Poker.Component.pokers[message[i][0]][message[i][1]]
+					.clone();
 			result.push(poker);
 		}
 		return result;
@@ -101,19 +102,15 @@ Poker.Component = {
 			height : Poker.Global.WINDOW_HEIGHT
 		});
 		Poker.Component.pokers.init();
-		for(var i in Poker.Component.Layers) {
+		for ( var i in Poker.Component.Layers) {
 			Poker.Component.Layers[i].init();
 		}
 		Poker.Component.pokerImage.src = '/assets/images/poker.png';
 	},
 	pokers : {
 		/*
-		 方片: x = 0
-		 草花: x = 1
-		 红桃: x = 2
-		 黑桃: x = 3
-		 王:   x = 4 (y = 0~1)
-		 背面: x = 4 (y = 2~5)
+		 * 方片: x = 0 草花: x = 1 红桃: x = 2 黑桃: x = 3 王: x = 4 (y = 0~1) 背面: x = 4
+		 * (y = 2~5)
 		 */
 
 		getPokerByIndex : function(x, y) {
@@ -127,7 +124,7 @@ Poker.Component = {
 					width : 70,
 					height : 95
 				}
-				//		,draggable: true
+			// ,draggable: true
 			});
 			poker.setPosition(-100, -100);
 			poker.setOffset(70 / 2, 95 / 2);
@@ -135,9 +132,9 @@ Poker.Component = {
 		},
 		init : function() {
 			pokerColor = Poker.CONST.POKER_COLOR;
-			for(var i in Poker.CONST.POKER_COLOR) {
+			for ( var i in Poker.CONST.POKER_COLOR) {
 				this[pokerColor[i]] = {}
-				for(var j = 0; j < 13; j++) {
+				for ( var j = 0; j < 13; j++) {
 					this[pokerColor[i]][j] = this.getPokerByIndex(j, i);
 				}
 			}
@@ -149,7 +146,7 @@ Poker.Component = {
 
 Poker.Component.Layers = {}
 function SuperLayer() {
-	// this.layer =  layer;
+	// this.layer = layer;
 }
 
 SuperLayer.prototype = {
@@ -177,14 +174,16 @@ function FourLayer() {
 
 FourLayer.prototype = new SuperLayer();
 FourLayer.prototype.drawReceiveCards = function() {
-	var msg = [["back", 0], ["back", 0], ["back", 0], ["back", 0], ["back", 0]];
+	var msg = [ [ "back", 0 ], [ "back", 0 ], [ "back", 0 ], [ "back", 0 ],
+			[ "back", 0 ] ];
 	this.drawByMessage(msg);
 };
 
 FourLayer.prototype.drawShowCards = function(msg, switchTotal) {
-	var backs = [["back", 0], ["back", 0], ["back", 0], ["back", 0], ["back", 0]];
+	var backs = [ [ "back", 0 ], [ "back", 0 ], [ "back", 0 ], [ "back", 0 ],
+			[ "back", 0 ] ];
 	var pokers = this.drawByMessage(backs, function(e, i) {
-		if(i >= 5 - switchTotal) {
+		if (i >= 5 - switchTotal) {
 			e.transitionTo({
 				scale : {
 					x : 0,
@@ -198,7 +197,7 @@ FourLayer.prototype.drawShowCards = function(msg, switchTotal) {
 	setTimeout(function() {
 		father.clear();
 		father.drawByMessage(msg, function(e, i) {
-			if(i >= 5 - switchTotal) {
+			if (i >= 5 - switchTotal) {
 				e.setScale({
 					x : 0,
 					y : 1
@@ -221,13 +220,12 @@ Poker.Component.Layers.dataLayer = (function() {
 
 	}
 
-
 	ThisLayer.prototype = new SuperLayer();
 	ThisLayer.prototype.init = function() {
 		layer = new Kinetic.Layer();
 		Poker.Component.pokerImage.onload = function() {
 			pokerArray = Poker.Component.pokers;
-			for(var i in pokerArray) {
+			for ( var i in pokerArray) {
 				Poker.tools.addPokerArrayToLayer(pokerArray[i], layer);
 			}
 			// add the layer to the stage
@@ -243,21 +241,24 @@ Poker.Component.Layers.bottomLayer = (function() {
 
 	}
 
-
 	ThisLayer.prototype = new SuperLayer();
 	ThisLayer.prototype.drawByPokers = function(pokers, callback) {
 		Poker.tools.addPokerArrayToLayer(pokers, this.layer);
 		var pokerTotal = pokers.length;
-		if(pokerTotal > 0) {
-			var totalLength = (pokerTotal - 1) * Poker.CONST.POKER_WIDTH + Poker.CONST.POKER_SPACING * (pokerTotal - 1);
-			var currentPosition = Poker.Position.Bottom.centerX - totalLength / 2;
-			for(var i in pokers) {
+		if (pokerTotal > 0) {
+			var totalLength = (pokerTotal - 1) * Poker.CONST.POKER_WIDTH
+					+ Poker.CONST.POKER_SPACING * (pokerTotal - 1);
+			var currentPosition = Poker.Position.Bottom.centerX - totalLength
+					/ 2;
+			for ( var i in pokers) {
 				var poker = pokers[i];
-				poker.setPosition(currentPosition, Poker.Position.Bottom.centerY);
-				if(callback != null) {
+				poker.setPosition(currentPosition,
+						Poker.Position.Bottom.centerY);
+				if (callback != null) {
 					callback(poker);
 				}
-				currentPosition += Poker.CONST.POKER_WIDTH + Poker.CONST.POKER_SPACING;
+				currentPosition += Poker.CONST.POKER_WIDTH
+						+ Poker.CONST.POKER_SPACING;
 			}
 		}
 	}
@@ -272,24 +273,28 @@ Poker.Component.Layers.bottomLayer = (function() {
 				this.setScale(1);
 				Poker.Component.stage.draw();
 			});
-			e.on("click", function() {
-				if(this.clicked != null) {
-					this.setY(this.getY() + Poker.CONST.POKER_CLICK_UP_SPACING);
-					Poker.Component.stage.draw();
-					this.clicked = null;
-				} else {
-					this.clicked = "true";
-					this.setY(this.getY() - Poker.CONST.POKER_CLICK_UP_SPACING);
-					Poker.Component.stage.draw();
-				}
-			});
+			e.on("click",
+					function() {
+						if (this.clicked != null) {
+							this.setY(this.getY()
+									+ Poker.CONST.POKER_CLICK_UP_SPACING);
+							Poker.Component.stage.draw();
+							this.clicked = null;
+						} else {
+							this.clicked = "true";
+							this.setY(this.getY()
+									- Poker.CONST.POKER_CLICK_UP_SPACING);
+							Poker.Component.stage.draw();
+						}
+					});
 		});
 	}
 	// drawSwitchCards : this.drawReceiveCards
 	ThisLayer.prototype.drawShowCards = function(showCards, stayCards) {
 		this.drawByMessage(stayCards);
 		this.drawByMessage(showCards, function(e) {
-			e.setY(e.getY() - Poker.CONST.POKER_HEIGHT - Poker.CONST.POKER_SHOW_SPACING);
+			e.setY(e.getY() - Poker.CONST.POKER_HEIGHT
+					- Poker.CONST.POKER_SHOW_SPACING);
 		});
 	}
 	return new ThisLayer();
@@ -299,22 +304,23 @@ Poker.Component.Layers.leftLayer = (function() {
 	function ThisLayer() {
 	}
 
-
 	ThisLayer.prototype = new FourLayer();
 	ThisLayer.prototype.drawByPokers = function(pokers, callback) {
 		Poker.tools.addPokerArrayToLayer(pokers, this.layer);
 		var pokerTotal = pokers.length;
-		if(pokerTotal > 0) {
-			var totalLength = (pokerTotal - 1) * Poker.CONST.POKER_WIDTH + Poker.CONST.POKER_SPACING * (pokerTotal - 1);
+		if (pokerTotal > 0) {
+			var totalLength = (pokerTotal - 1) * Poker.CONST.POKER_WIDTH
+					+ Poker.CONST.POKER_SPACING * (pokerTotal - 1);
 			var currentPosition = Poker.Position.Left.centerY - totalLength / 2;
-			for(var i in pokers) {
+			for ( var i in pokers) {
 				var poker = pokers[i];
 				poker.rotateDeg(90);
 				poker.setPosition(Poker.Position.Left.centerX, currentPosition);
-				if(callback != null) {
+				if (callback != null) {
 					callback(poker, i);
 				}
-				currentPosition += Poker.CONST.POKER_WIDTH + Poker.CONST.POKER_SPACING;
+				currentPosition += Poker.CONST.POKER_WIDTH
+						+ Poker.CONST.POKER_SPACING;
 			}
 		}
 	};
@@ -325,22 +331,26 @@ Poker.Component.Layers.rightLayer = (function() {
 	function ThisLayer() {
 	}
 
-
 	ThisLayer.prototype = new FourLayer();
 	ThisLayer.prototype.drawByPokers = function(pokers, callback) {
 		Poker.tools.addPokerArrayToLayer(pokers, this.layer);
 		var pokerTotal = pokers.length;
-		if(pokerTotal > 0) {
-			var totalLength = (pokerTotal - 1) * Poker.CONST.POKER_WIDTH + Poker.CONST.POKER_SPACING * (pokerTotal - 1);
-			var currentPosition = Poker.Position.Right.centerY + totalLength / 2;
-			for(var i in pokers) {
+		if (pokerTotal > 0) {
+			var totalLength = (pokerTotal - 1) * Poker.CONST.POKER_WIDTH
+					+ Poker.CONST.POKER_SPACING * (pokerTotal - 1);
+			var currentPosition = Poker.Position.Right.centerY + totalLength
+					/ 2;
+			for ( var i in pokers) {
 				var poker = pokers[i];
 				poker.rotateDeg(90);
-				poker.setPosition(Poker.Position.Right.centerX, currentPosition);
-				if(callback != null) {
+				poker
+						.setPosition(Poker.Position.Right.centerX,
+								currentPosition);
+				if (callback != null) {
 					callback(poker, i);
 				}
-				currentPosition -= Poker.CONST.POKER_WIDTH + Poker.CONST.POKER_SPACING;
+				currentPosition -= Poker.CONST.POKER_WIDTH
+						+ Poker.CONST.POKER_SPACING;
 			}
 		}
 	};
@@ -351,22 +361,25 @@ Poker.Component.Layers.topLeftLayer = (function() {
 	function ThisLayer() {
 	}
 
-
 	ThisLayer.prototype = new FourLayer();
 	ThisLayer.prototype.drawByPokers = function(pokers, callback) {
 		Poker.tools.addPokerArrayToLayer(pokers, this.layer);
 		var pokerTotal = pokers.length;
-		if(pokerTotal > 0) {
-			var totalLength = (pokerTotal - 1) * Poker.CONST.POKER_WIDTH + Poker.CONST.POKER_SPACING * (pokerTotal - 1);
-			var currentPosition = Poker.Position.TopLeft.centerX + totalLength / 2;
-			for(var i in pokers) {
+		if (pokerTotal > 0) {
+			var totalLength = (pokerTotal - 1) * Poker.CONST.POKER_WIDTH
+					+ Poker.CONST.POKER_SPACING * (pokerTotal - 1);
+			var currentPosition = Poker.Position.TopLeft.centerX + totalLength
+					/ 2;
+			for ( var i in pokers) {
 				var poker = pokers[i];
 				poker.rotateDeg(180);
-				poker.setPosition(currentPosition, Poker.Position.TopLeft.centerY);
-				if(callback != null) {
+				poker.setPosition(currentPosition,
+						Poker.Position.TopLeft.centerY);
+				if (callback != null) {
 					callback(poker, i);
 				}
-				currentPosition -= Poker.CONST.POKER_WIDTH + Poker.CONST.POKER_SPACING;
+				currentPosition -= Poker.CONST.POKER_WIDTH
+						+ Poker.CONST.POKER_SPACING;
 			}
 		}
 	};
@@ -377,27 +390,29 @@ Poker.Component.Layers.topRightLayer = (function() {
 	function ThisLayer() {
 	}
 
-
 	ThisLayer.prototype = new FourLayer();
 	ThisLayer.prototype.drawByPokers = function(pokers, callback) {
 		Poker.tools.addPokerArrayToLayer(pokers, this.layer);
 		var pokerTotal = pokers.length;
-		if(pokerTotal > 0) {
-			var totalLength = (pokerTotal - 1) * Poker.CONST.POKER_WIDTH + Poker.CONST.POKER_SPACING * (pokerTotal - 1);
-			var currentPosition = Poker.Position.TopRight.centerX + totalLength / 2;
-			for(var i in pokers) {
+		if (pokerTotal > 0) {
+			var totalLength = (pokerTotal - 1) * Poker.CONST.POKER_WIDTH
+					+ Poker.CONST.POKER_SPACING * (pokerTotal - 1);
+			var currentPosition = Poker.Position.TopRight.centerX + totalLength
+					/ 2;
+			for ( var i in pokers) {
 				var poker = pokers[i];
 				poker.rotateDeg(180);
-				poker.setPosition(currentPosition, Poker.Position.TopRight.centerY);
-				if(callback != null) {
+				poker.setPosition(currentPosition,
+						Poker.Position.TopRight.centerY);
+				if (callback != null) {
 					callback(poker, i);
 				}
-				currentPosition -= Poker.CONST.POKER_WIDTH + Poker.CONST.POKER_SPACING;
+				currentPosition -= Poker.CONST.POKER_WIDTH
+						+ Poker.CONST.POKER_SPACING;
 			}
 		}
 	};
 	return new ThisLayer();
 })();
-
 // TopRightLayer : new Kinetic.Layer(),
 // }

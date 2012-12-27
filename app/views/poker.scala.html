@@ -1,4 +1,4 @@
-@(name:String)(implicit request: RequestHeader)
+@(userName:String)(implicit request: RequestHeader)
 
 <!DOCTYPE html>
 <html>
@@ -32,22 +32,52 @@ body {
 
 	<div id="container">
 		<div class="panel" id="panel">
-			<div id="test" style="display: none;">
+			<div id="test" style="">
 				<button class="btn btn-primary" onclick="testShowPoker();">来一发</button>
 				<button class="btn btn-primary" onclick="testReceivePoker();">来一发</button>
-				<button class="btn btn-primary" onclick="clearAll();">清除</button>
+				<button class="btn btn-primary" onclick="Poker.Component.Layers.clearAll()">清除</button>
 			</div>
 			<div id="ready">
-				<button class="btn btn-primary" onclick="">来一发</button>
+				<button class="btn btn-large btn-danger" onclick="ready();">准备</button>
 			</div>
 		</div>
 	</div>
+	<script type="text/javascript" charset="utf-8">
+	    var chatSocket;
+		$(function(){
+			Poker.Component.init();
+			hidePanel();
+			var WS = window['MozWebSocket'] ? MozWebSocket : WebSocket
+	    	chatSocket = new WS('@routes.Application.gameOn(userName).webSocketURL()')
+		
+			var receiveEvent = function(event){
+				var data = JSON.parse(event.data)
+				if(data.kind == "join"){
+				  alert(data.message)
+				}
+				
+			}
+			chatSocket.onmessage = receiveEvent
+		})
+		
+		function hidePanel(){
+			//$("#ready").css("display","none");
+			
+		}
+	
+		
+		function ready(){
+			chatSocket.send(JSON.stringify(
+		            {kind:"ready"}
+		        ))
+			
+		}
+	</script>
 
 	<script>
-		$(document).ready(function() {
-			Poker.Component.init();
+		
+		
 
-		})
 		function testReceivePoker() {
 			var msg = [ [ "back", 0 ], [ "back", 0 ], [ "hearts", 1 ],
 					[ "hearts", 2 ], [ "hearts", 3 ] ];
@@ -76,14 +106,15 @@ body {
 
 			Poker.Component.stage.draw();
 		}
-
-		function clearAll() {
-			layers.leftLayer.clear();
-			layers.rightLayer.clear();
-			layers.topLeftLayer.clear();
-			layers.topRightLayer.clear();
-			layers.bottomLayer.clear();
+	
+		function clearAll(){
+			Poker.Component.Layers.leftLayer.clear();
+			Poker.Component.Layers.rightLayer.clear();
+			Poker.Component.Layers.topLeftLayer.clear();
+			Poker.Component.Layers.topRightLayer.clear();
+			Poker.Component.Layers.bottomLayer.clear();
 		}
+
 	</script>
 </body>
 </html>

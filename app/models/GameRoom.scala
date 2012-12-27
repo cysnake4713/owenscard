@@ -12,6 +12,7 @@ import play.api.Play.current
 import play.api.i18n.Messages
 import Json.toJson
 import akka.actor.ActorLogging
+import play.Logger
 
 object GameRoom {
 
@@ -47,24 +48,22 @@ object GameRoom {
 
 class GameRoom extends Actor with akka.actor.ActorLogging {
   import context._
-  var members = Map.empty[String, Map[String, Any]]
   def receive = init
 
   def init: Receive = {
     case JoinGame(username) => {
       // Create an Enumerator to write to this socket
-      system.log.debug("{} has join the game", username)
       val channel = Enumerator.imperative[JsValue]()
-      if (members.contains(username)) {
+      if (Table.contains(username)) {
         sender ! CannotConnect(Messages("username.used"))
       } else {
-        if (members.size == 5) {
-          sender ! CannotConnect("already have 5 users here.")
+        if (Table.size == 5) {
+          sender ! CannotConnect("already have 5 users")
         } else {
-          val member = Map[String, Any](
-            "channel" -> channel,
-            "status" -> false)
-          members = members + (username -> member)
+          Logger.debug(username + " has join the game")
+          Table + new User(username, false, channel)
+          Logger.debug("current table member:" + Table.members)
+          Message.join(username)
           sender ! Connected(channel)
 
         }
@@ -74,13 +73,13 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
     case GetMessage(name, jsValue) => {
       (jsValue \ "kind").asOpt[String] match {
         case Some("ready") => {
-          system.log.debug("{} ready to start game", name)
-          members(name).updated("status", true)
-          if ((true /: members) { (result, ele) => result && ele._2.get("status").asInstanceOf[Boolean] }) {
+          Logger.debug(name + " ready to start game")
+          Table.members(name).status = true
+          if (Table.isReady()) {
             Poker.shufflePoker()
-            members.foreach(ele => {
+            Table.members.foreach(ele => {
               val pokers = Poker.dialPoker(5)
-              ele._2.updated("poker", pokers)
+              ele._2.pokers = pokers
               dial(ele._1, pokers)
             })
             become(start)
@@ -92,22 +91,34 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
     }
 
     case Quit(username) => {
-      system.log.debug("{} exit game", username)
-      members = members - username
-      notifyAll("quit", username, Messages("leave.room"))
+      Logger.debug(username + " exit game")
+      Table - username
+      Message.quit(username)
     }
   }
 
   def start: Receive = {
     case GetMessage(name, jsValue) => {
-      system.log.debug("Start: get Message")
+      Logger.debug("Start: get Message")
     }
 
     case Quit(username) => {
       system.log.debug("{} exit game", username)
-      members = members - username
-      notifyAll("quit", username, Messages("leave.room"))
+      Table - username
+      Message.quit(username)
     }
+  }
+
+}
+
+object Message {
+
+  def quit(userName: String) {
+    notifyAll("quit", userName, "")
+  }
+
+  def join(user: String) {
+    notifyAll("join", user, "")
   }
 
   def dial(userName: String, poker: List[(String, Int)]) {
@@ -116,43 +127,91 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
         toJson(Map(
           "color" -> toJson(ele._1),
           "number" -> toJson(ele._2)))))
-    system.log.debug("dial:generate jsonObj={}", jsonObj)
+    Logger.debug("dial:generate jsonObj=" + jsonObj)
     notifyOne("dial", userName, jsonObj.toString())
   }
 
-  def notifyAll(kind: String, user: String, text: String) {
+  def notifyOne(kind: String, userName: String, text: String) {
     val msg = JsObject(
       Seq(
         "kind" -> JsString(kind),
-        "user" -> JsString(user),
-        "message" -> JsString(text),
-        "members" -> JsArray(
-          members.keySet.toList.map(JsString))))
-    system.log.debug("notifyAll:send Message: {}", msg)
-    members.foreach {
-      case (_, ele) => ele("channel").asInstanceOf[PushEnumerator[JsValue]].push(msg)
+        "user" -> JsString(userName),
+        "message" -> JsString(text)))
+    Logger.debug("notifyOne:send message:" + msg)
+    Table.members.foreach {
+      case (key, user) if key == userName => user.channel.push(msg)
     }
   }
 
-  def notifyOne(kind: String, target: String, text: String) {
-    val msg = JsObject(
-      Seq(
-        "kind" -> JsString(kind),
-        "message" -> JsString(text)))
-    system.log.debug("notifyOne:send message:{}", msg)
-    members.foreach {
-      case (key, ele) if key == target => ele("channel").asInstanceOf[PushEnumerator[JsValue]].push(msg)
+  def notifyAll(kind: String, user: String, text: String) {
+    Table.members.foreach {
+      case (userName, ele) => {
+        val index = Table.memberOrder.indexWhere(_ == userName)
+        val memberForJS = Table.memberOrder.slice(index, Table.memberOrder.size) ::: Table.memberOrder.slice(0, index)
+        val msg = JsObject(
+          Seq(
+            "kind" -> JsString(kind),
+            "user" -> JsString(user),
+            "message" -> JsString(text),
+            "members" -> JsArray(
+              memberForJS.map(JsString))))
+        Logger.debug("notifyAll:send Message: " + msg)
+        ele.channel.push(msg)
+      }
+    }
+
+  }
+
+}
+
+object Table {
+  var members = Map.empty[String, User]
+  var memberOrder: List[String] = List(null, null, null, null, null)
+
+  def contains(userName: String): Boolean = {
+    members.contains(userName)
+  }
+
+  def size(): Int = {
+    members.size
+  }
+
+  def add(user: User) = {
+    if (!isFull()) {
+      members += (user.name -> user)
+      val index = memberOrder.indexWhere(_ == null)
+      memberOrder = memberOrder.slice(0, index) ::: List(user.name) ::: memberOrder.slice(index + 1, memberOrder.size)
     }
   }
+
+  def +(user: User) = {
+    add(user)
+  }
+
+  def -(userName: String) = {
+    members -= userName
+    val index = memberOrder.indexWhere(_ == userName)
+    memberOrder = memberOrder.slice(0, index) ::: List(null) ::: memberOrder.slice(index + 1, memberOrder.size)
+  }
+
+  def isFull(): Boolean = {
+    if (members.size >= 5) {
+      true
+    } else {
+      false
+    }
+  }
+
+  def isReady(): Boolean = {
+    (true /: members) { (result, ele) => result && ele._2.status }
+  }
+}
+
+class User(val name: String, var status: Boolean, val channel: PushEnumerator[JsValue]) {
+  var pokers = List.empty[(String, Int)]
 }
 
 case class GetMessage(userName: String, value: JsValue)
 case class dial(userName: String, poker: List[(String, Int)])
 case class JoinGame(userName: String)
-//case class Join(username: String)
-//case class Quit(username: String)
-//case class Talk(username: String, text: String)
-//case class NotifyJoin(username: String)
-//
-//case class Connected(enumerator: Enumerator[JsValue])
-//case class CannotConnect(msg: String)
+
