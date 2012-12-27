@@ -75,6 +75,7 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
         case Some("ready") => {
           Logger.debug(name + " ready to start game")
           Table.members(name).status = true
+          Logger.debug("is everyone ready? " + Table.isReady())
           if (Table.isReady()) {
             Poker.shufflePoker()
             Table.members.foreach(ele => {

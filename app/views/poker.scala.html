@@ -38,38 +38,41 @@ body {
 				<button class="btn btn-primary" onclick="Poker.Component.Layers.clearAll()">清除</button>
 			</div>
 			<div id="ready">
-				<button class="btn btn-large btn-danger" onclick="ready();">准备</button>
+				<button id="readyButton" class="btn btn-large btn-danger" >准备</button>
 			</div>
 		</div>
 	</div>
 	<script type="text/javascript" charset="utf-8">
-	    var chatSocket;
 		$(function(){
 			Poker.Component.init();
 			hidePanel();
 			var WS = window['MozWebSocket'] ? MozWebSocket : WebSocket
-	    	chatSocket = new WS('@routes.Application.gameOn(userName).webSocketURL()')
+	    	var chatSocket = new WS('@routes.Application.gameOn(userName).webSocketURL()')
 		
 			var receiveEvent = function(event){
 				var data = JSON.parse(event.data)
+				alert(data)
 				if(data.kind == "join"){
 				  alert(data.message)
 				}
-				
 			}
 			chatSocket.onmessage = receiveEvent
+			$("#readyButton").click(function (e){
+				e.preventDefault()
+					chatSocket.send(JSON.stringify(
+				            {kind:"ready"}
+				        ))
+		  		this.disabled =true
+				
+			})
+			
+			chatSocket.onclose = function(){
+				alert("websocket closed")
+			}
 		})
 		
 		function hidePanel(){
 			//$("#ready").css("display","none");
-			
-		}
-	
-		
-		function ready(){
-			chatSocket.send(JSON.stringify(
-		            {kind:"ready"}
-		        ))
 			
 		}
 	</script>
