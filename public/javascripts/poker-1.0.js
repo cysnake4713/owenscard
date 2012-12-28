@@ -12,10 +12,10 @@ Poker.CONST = {
 	POKER_SHOW_SPACING : 20,
 
 	POKER_COLOR : {
-		DIAMOND : "diamond",
-		CLUB : "club",
-		HEARTS : "hearts",
-		SPADE : "spade"
+		DIAMOND : "DIAMOND",
+		CLUB : "CLUB",
+		HEARTS : "HEARTS",
+		SPADE : "SPADE"
 	}
 }
 Poker.Global = {
@@ -27,10 +27,10 @@ Poker.Position = {
 
 	Bottom : {
 		centerX : Poker.Global.WINDOW_WIDTH / 2,
-		centerY : Poker.Global.WINDOW_HEIGHT - 60
+		centerY : Poker.Global.WINDOW_HEIGHT - 100
 	},
 	Left : {
-		centerX : 60,
+		centerX : 90,
 		centerY : Poker.Global.WINDOW_HEIGHT / 2
 	},
 	Right : {
@@ -39,59 +39,14 @@ Poker.Position = {
 	},
 	TopLeft : {
 		centerX : Poker.Global.WINDOW_WIDTH / 4 + 50,
-		centerY : 60
+		centerY : 90
 	},
 	TopRight : {
 		centerX : (Poker.Global.WINDOW_WIDTH / 4) * 3 - 70,
-		centerY : 60
+		centerY : 90
 	}
 }
 
-Poker.Builder = {
-	init : function() {
-
-	},
-
-	/*
-	 * 将图片中的所有扑克初始化放到pokerArray中
-	 */
-	initComopentPokerArray : function() {
-		pokerColor = Poker.CONST.POKER_COLOR;
-		for ( var i in Poker.CONST.POKER_COLOR) {
-			Poker.Component.Pokers[pokerColor[i]] = {}
-			for ( var j = 0; j < 13; j++) {
-				Poker.Component.Pokers[pokerColor[i]][j] = getPokerByIndex(j, i);
-			}
-		}
-		pokerArray["back"] = new Array();
-		pokerArray["back"][0] = getPokerByIndex(3, 4);
-	}
-}
-
-Poker.tools = {
-
-	/*
-	 * 将poker Image加入到指定Layer中
-	 */
-	addPokerArrayToLayer : function(pokers, layer) {
-		for ( var i in pokers) {
-			layer.add(pokers[i]);
-		}
-	},
-
-	/*
-	 * 由数组message创建poker对象
-	 */
-	createPokersByMessage : function(message) {
-		var result = new Array();
-		for ( var i in message) {
-			var poker = Poker.Component.pokers[message[i][0]][message[i][1]]
-					.clone();
-			result.push(poker);
-		}
-		return result;
-	}
-}
 Poker.Component = {
 
 	init : function() {
@@ -123,8 +78,8 @@ Poker.Component = {
 					y : 95 * y,
 					width : 70,
 					height : 95
-				}
-			// ,draggable: true
+				},
+				draggable : true
 			});
 			poker.setPosition(-100, -100);
 			poker.setOffset(70 / 2, 95 / 2);
@@ -132,11 +87,13 @@ Poker.Component = {
 		},
 		init : function() {
 			pokerColor = Poker.CONST.POKER_COLOR;
+			var t = 0
 			for ( var i in Poker.CONST.POKER_COLOR) {
 				this[pokerColor[i]] = {}
 				for ( var j = 0; j < 13; j++) {
-					this[pokerColor[i]][j] = this.getPokerByIndex(j, i);
+					this[pokerColor[i]][j] = this.getPokerByIndex(j, t);
 				}
+				t += 1
 			}
 			this["back"] = {}
 			this["back"][0] = this.getPokerByIndex(3, 4);
@@ -146,7 +103,6 @@ Poker.Component = {
 
 Poker.Component.Layers = {}
 function SuperLayer() {
-	// this.layer = layer;
 }
 
 SuperLayer.prototype = {
@@ -166,22 +122,64 @@ SuperLayer.prototype = {
 	},
 	drawByPokers : function(pokers, callback) {
 	},
+	complexText : new Kinetic.Text({
+		x : -100,
+		y : -100,
+		padding : 5,
+		text : "",
+		fontSize : 20,
+		textFill : 'white',
+		width : 150,
+		height : 100,
+		align : 'center',
+		// fontFamily : 'Calibri',
+		// fontStyle : 'italic',
+		offset : [ 75, 50 ],
+		cornerRadius : 10,
+	})
 }
 
 function FourLayer() {
-
 }
 
 FourLayer.prototype = new SuperLayer();
 FourLayer.prototype.drawReceiveCards = function() {
-	var msg = [ [ "back", 0 ], [ "back", 0 ], [ "back", 0 ], [ "back", 0 ],
-			[ "back", 0 ] ];
+	var msg = [ {
+		'color' : 'back',
+		'number' : '0'
+	}, {
+		'color' : 'back',
+		'number' : '0'
+	}, {
+		'color' : 'back',
+		'number' : '0'
+	}, {
+		'color' : 'back',
+		'number' : '0'
+	}, {
+		'color' : 'back',
+		'number' : '0'
+	} ];
 	this.drawByMessage(msg);
 };
 
 FourLayer.prototype.drawShowCards = function(msg, switchTotal) {
-	var backs = [ [ "back", 0 ], [ "back", 0 ], [ "back", 0 ], [ "back", 0 ],
-			[ "back", 0 ] ];
+	var msg = [ {
+		'color' : 'back',
+		'number' : '0'
+	}, {
+		'color' : 'back',
+		'number' : '0'
+	}, {
+		'color' : 'back',
+		'number' : '0'
+	}, {
+		'color' : 'back',
+		'number' : '0'
+	}, {
+		'color' : 'back',
+		'number' : '0'
+	} ];
 	var pokers = this.drawByMessage(backs, function(e, i) {
 		if (i >= 5 - switchTotal) {
 			e.transitionTo({
@@ -215,21 +213,21 @@ FourLayer.prototype.drawShowCards = function(msg, switchTotal) {
 }
 
 Poker.Component.Layers.dataLayer = (function() {
-	var layer;
 	function ThisLayer() {
 
 	}
 
 	ThisLayer.prototype = new SuperLayer();
 	ThisLayer.prototype.init = function() {
-		layer = new Kinetic.Layer();
+		this.layer = new Kinetic.Layer();
+		var la = this.layer
 		Poker.Component.pokerImage.onload = function() {
 			pokerArray = Poker.Component.pokers;
 			for ( var i in pokerArray) {
-				Poker.tools.addPokerArrayToLayer(pokerArray[i], layer);
+				Poker.tools.addPokerArrayToLayer(pokerArray[i], la);
 			}
 			// add the layer to the stage
-			Poker.Component.stage.add(layer);
+			Poker.Component.stage.add(la);
 		}
 	}
 	return new ThisLayer();
@@ -297,6 +295,7 @@ Poker.Component.Layers.bottomLayer = (function() {
 					- Poker.CONST.POKER_SHOW_SPACING);
 		});
 	}
+
 	return new ThisLayer();
 })();
 
@@ -414,5 +413,85 @@ Poker.Component.Layers.topRightLayer = (function() {
 	};
 	return new ThisLayer();
 })();
-// TopRightLayer : new Kinetic.Layer(),
-// }
+
+Poker.Component.Layers.textLayer = (function() {
+	function ThisLayer() {
+	}
+
+	ThisLayer.prototype = new SuperLayer();
+	ThisLayer.prototype.drawNameBottom = function(name) {
+		if (name != null) {
+			complexText = this.complexText.clone()
+			complexText.setPosition(Poker.Position.Bottom.centerX,
+					Poker.Position.Bottom.centerY + Poker.CONST.POKER_HEIGHT
+							+ 10)
+			complexText.setText(name)
+			this.layer.add(complexText)
+		}
+	}
+	ThisLayer.prototype.drawNameLeft = function(name) {
+		if (name != null) {
+			complexText = this.complexText.clone()
+			complexText.setPosition(Poker.Position.Left.centerX
+					- Poker.CONST.POKER_HEIGHT, Poker.Position.Left.centerY)
+			complexText.setText(name)
+			complexText.rotateDeg(90)
+			this.layer.add(complexText)
+		}
+	}
+	ThisLayer.prototype.drawNameRight = function(name) {
+		if (name != null) {
+			complexText = this.complexText.clone()
+			complexText.setPosition(Poker.Position.Right.centerX
+					+ Poker.CONST.POKER_HEIGHT, Poker.Position.Right.centerY)
+			complexText.setText(name)
+			complexText.rotateDeg(270)
+			this.layer.add(complexText)
+		}
+	}
+	ThisLayer.prototype.drawNameTopLeft = function(name) {
+		if (name != null) {
+			complexText = this.complexText.clone()
+			complexText.setPosition(Poker.Position.TopLeft.centerX,
+					Poker.Position.TopLeft.centerY - 40)
+			complexText.setText(name)
+			this.layer.add(complexText)
+		}
+	}
+	ThisLayer.prototype.drawNameTopRight = function(name) {
+		if (name != null) {
+			complexText = this.complexText.clone()
+			complexText.setPosition(Poker.Position.TopRight.centerX,
+					Poker.Position.TopRight.centerY - 40)
+			complexText.setText(name)
+			this.layer.add(complexText)
+		}
+	}
+
+	return new ThisLayer();
+})();
+
+Poker.tools = {
+
+	/*
+	 * 将poker Image加入到指定Layer中
+	 */
+	addPokerArrayToLayer : function(pokers, layer) {
+		for ( var i in pokers) {
+			layer.add(pokers[i]);
+		}
+	},
+
+	/*
+	 * 由数组message创建poker对象
+	 */
+	createPokersByMessage : function(message) {
+		var result = new Array();
+		for ( var i in message) {
+			var poker = Poker.Component.pokers[message[i]["color"]][message[i]["number"]]
+					.clone();
+			result.push(poker);
+		}
+		return result;
+	}
+}

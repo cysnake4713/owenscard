@@ -78,16 +78,23 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
           Logger.debug("is everyone ready? " + Table.isReady())
           if (Table.isReady()) {
             Poker.shufflePoker()
-            Table.members.foreach(ele => {
+            for ((key, user) <- Table.members) {
+              Logger.debug("dial poker!")
               val pokers = Poker.dialPoker(5)
-              ele._2.pokers = pokers
-              dial(ele._1, pokers)
-            })
+              user.pokers = pokers
+              Message.dial(user.name, pokers)
+            }
             become(start)
           }
         }
+        case Some("getMember") => {
+          Logger.debug(name + " want getMember")
+          Message.getMember(name)
+        }
 
-        case None =>
+        case None => {
+          Logger.debug("no match")
+        }
       }
     }
 
@@ -95,6 +102,7 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
       Logger.debug(username + " exit game")
       Table - username
       Message.quit(username)
+      context.unbecome()
     }
   }
 
@@ -106,7 +114,7 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
     case Quit(username) => {
       system.log.debug("{} exit game", username)
       Table - username
-      Message.quit(username)
+      context.unbecome()
     }
   }
 
@@ -114,12 +122,16 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
 
 object Message {
 
+  def getMember(userName: String) {
+    notifyOne("members", userName, "")
+  }
+
   def quit(userName: String) {
     notifyAll("quit", userName, "")
   }
 
   def join(user: String) {
-    notifyAll("join", user, "")
+    notifyAll("members", user, "")
   }
 
   def dial(userName: String, poker: List[(String, Int)]) {
@@ -133,14 +145,21 @@ object Message {
   }
 
   def notifyOne(kind: String, userName: String, text: String) {
+    val index = Table.memberOrder.indexWhere(_ == userName)
+    val memberForJS = Table.memberOrder.slice(index, Table.memberOrder.size) ::: Table.memberOrder.slice(0, index)
     val msg = JsObject(
       Seq(
         "kind" -> JsString(kind),
         "user" -> JsString(userName),
-        "message" -> JsString(text)))
-    Logger.debug("notifyOne:send message:" + msg)
+        "message" -> JsString(text),
+        "members" -> JsArray(
+          memberForJS.map(JsString))))
+    Logger.debug("notifyOne: send message:" + msg)
     Table.members.foreach {
-      case (key, user) if key == userName => user.channel.push(msg)
+      case (key, user) if key == userName => 
+        Logger.debug("find")
+        user.channel.push(msg)
+      case _ =>
     }
   }
 
@@ -210,6 +229,10 @@ object Table {
 
 class User(val name: String, var status: Boolean, val channel: PushEnumerator[JsValue]) {
   var pokers = List.empty[(String, Int)]
+
+  override def toString(): String = {
+    "name: " + name + " status:" + status + " channel:" + channel
+  }
 }
 
 case class GetMessage(userName: String, value: JsValue)

@@ -5,11 +5,11 @@ class Pokers private (val color: String, val number: Int) {
 }
 
 object Poker {
-  val color = Set("diamond", "club",
-    "hearts",
-    "spade")
+  val color = Set("DIAMOND", "CLUB",
+    "HEARTS",
+    "SPADE")
   val number = Set(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
-  val back = ("back", 2);
+  val back = ("back", 0);
   private val pokers = color flatMap { x => number map (y => (x, y)) }
   private var currentPokers = List.empty[(String, Int)]
 
