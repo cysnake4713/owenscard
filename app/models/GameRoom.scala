@@ -84,6 +84,7 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
               user.pokers = pokers
               Message.dial(user.name, pokers)
             }
+            Table.setAllNotReady()
             become(start)
           }
         }
@@ -108,7 +109,28 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
 
   def start: Receive = {
     case GetMessage(name, jsValue) => {
-      Logger.debug("Start: get Message")
+      Logger.debug("Start: get Message" + jsValue)
+      (jsValue \ "kind").asOpt[String] match {
+        case Some("switch") => {
+          if (!Table.members(name).status) {
+            val switchPokersColor = (jsValue \ "message" \\ "color").map(ele => ele.as[String])
+            val switchPokersNum = (jsValue \ "message" \\ "number").map(ele => ele.as[Int])
+            val result = (switchPokersColor zip switchPokersNum).toList
+            Table.members(name).pokers = Table.members(name).pokers.filterNot(ele => result.contains(ele))
+            Table.members(name).status = true
+          }
+          if (Table.isReady()) {
+            Table.members.foreach {
+              case (name, user) =>
+                user.pokers = user.pokers ++ Poker.dialPoker(5 - user.pokers.size)
+                user.pokers = user.pokers.sortWith((e1, e2) => e1._2 < e2._2)
+                Message.switch(name, user.pokers)
+            }
+          }
+        }
+
+        case None =>
+      }
     }
 
     case Quit(username) => {
@@ -121,6 +143,16 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
 }
 
 object Message {
+
+  def switch(userName: String, poker: List[(String, Int)]) {
+    val jsonObj = Json.toJson(
+      poker.map(ele =>
+        toJson(Map(
+          "color" -> toJson(ele._1),
+          "number" -> toJson(ele._2)))))
+    Logger.debug("dial:generate jsonObj=" + jsonObj)
+    notifyOne("switchresult", userName, jsonObj.toString())
+  }
 
   def getMember(userName: String) {
     notifyOne("members", userName, "")
@@ -156,7 +188,7 @@ object Message {
           memberForJS.map(JsString))))
     Logger.debug("notifyOne: send message:" + msg)
     Table.members.foreach {
-      case (key, user) if key == userName => 
+      case (key, user) if key == userName =>
         Logger.debug("find")
         user.channel.push(msg)
       case _ =>
@@ -224,6 +256,12 @@ object Table {
 
   def isReady(): Boolean = {
     (true /: members) { (result, ele) => result && ele._2.status }
+  }
+
+  def setAllNotReady() = {
+    members.foreach {
+      case (name, user) => user.status = false
+    }
   }
 }
 

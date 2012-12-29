@@ -79,7 +79,7 @@ Poker.Component = {
 					width : 70,
 					height : 95
 				},
-				draggable : true
+			// draggable : true
 			});
 			poker.setPosition(-100, -100);
 			poker.setOffset(70 / 2, 95 / 2);
@@ -91,7 +91,12 @@ Poker.Component = {
 			for ( var i in Poker.CONST.POKER_COLOR) {
 				this[pokerColor[i]] = {}
 				for ( var j = 0; j < 13; j++) {
-					this[pokerColor[i]][j] = this.getPokerByIndex(j, t);
+					var poker = this.getPokerByIndex(j, t);
+					poker.desc = {
+						"color" : pokerColor[i],
+						"number" : j
+					}
+					this[pokerColor[i]][j] = poker;
 				}
 				t += 1
 			}
@@ -488,8 +493,9 @@ Poker.tools = {
 	createPokersByMessage : function(message) {
 		var result = new Array();
 		for ( var i in message) {
-			var poker = Poker.Component.pokers[message[i]["color"]][message[i]["number"]]
-					.clone();
+			var originPoker = Poker.Component.pokers[message[i]["color"]][message[i]["number"]];
+			var poker = originPoker.clone();
+			poker.desc = originPoker.desc
 			result.push(poker);
 		}
 		return result;

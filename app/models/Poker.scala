@@ -40,7 +40,7 @@ object Poker {
     }
     val tempList = currentPokers.splitAt(number)
     currentPokers = tempList._2
-    tempList._1
+    tempList._1.sortWith((e1, e2) => e1._2 < e2._2)
   }
 }
 

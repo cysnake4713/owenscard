@@ -32,9 +32,14 @@ body {
 
 	<div id="container">
 		<div class="panel" id="panel">
+			<div id="show">
+				<button id="showButton" class="btn btn-large btn-primary">亮牌</button>
+			</div>
 			<div id="ready">
 				<button id="readyButton"  class="btn btn-large btn-danger" >准备</button>
-				<button onclick="printAll()">test</button>
+			</div>
+			<div id="switch">
+				<button id="switchButton" class="btn btn-large btn-primary">换牌</button>
 			</div>
 		</div>
 	</div>
@@ -57,6 +62,8 @@ body {
 				var data = JSON.parse(event.data)
 				//alert("onmessage   data.kind :" + data.kind)
 				if (data.kind == "dial") {
+					$("#ready").css("display","none")
+					$("#switch").css("display","")
 					layers = Poker.Component.Layers;
 					clearAll()
 					var cards = data.message
@@ -73,6 +80,16 @@ body {
 					if (data.members[4]) {
 						layers.rightLayer.drawReceiveCards();
 					}
+					Poker.Component.stage.draw();
+				}
+				if (data.kind == "switchresult"){
+					$("#ready").css("display","none")
+					$("#switch").css("display","none")
+					$("#show").css("display","")
+					layers = Poker.Component.Layers;
+					layers.bottomLayer.clear()
+					var cards = data.message
+					layers.bottomLayer.drawReceiveCards(JSON.parse(cards))
 					Poker.Component.stage.draw();
 				}
 
@@ -95,6 +112,23 @@ body {
 				this.disabled = true
 
 			})
+			
+			$("#switchButton").click(function(e){
+				e.preventDefault()
+				var pokers = Poker.Component.Layers.bottomLayer.layer.children;
+				var result = new Array()
+				for(var j in pokers){
+					if(pokers[j].clicked == "true"){
+						result.push(pokers[j].desc)
+					}
+				}
+				chatSocket.send(JSON.stringify({
+					kind:"switch",
+					message:result
+				}))
+				this.disabled = true
+				
+			})
 
 			chatSocket.onclose = function() {
 				alert("websocket closed")
@@ -103,7 +137,8 @@ body {
 
 		function hidePanel() {
 			//$("#ready").css("display","none");
-
+			$("#switch").css("display","none");
+			$("#show").css("display","none");
 		}
 	</script>
 
