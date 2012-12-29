@@ -126,6 +126,8 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
                 user.pokers = user.pokers.sortWith((e1, e2) => e1._2 < e2._2)
                 Message.switch(name, user.pokers)
             }
+            Table.setAllNotReady()
+            become(show)
           }
         }
 
@@ -140,10 +142,55 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
     }
   }
 
+  def show: Receive = {
+    case GetMessage(name, jsValue) => {
+      Logger.debug("show: get Message" + jsValue)
+      (jsValue \ "kind").asOpt[String] match {
+        case Some("show") => {
+          if (!Table.members(name).status) {
+            val showPokersColor = (jsValue \ "message" \\ "color").map(ele => ele.as[String])
+            val showPokersNum = (jsValue \ "message" \\ "number").map(ele => ele.as[Int])
+            val showPoker = (showPokersColor zip showPokersNum).toList
+            val unShowPoker = Table.members(name).pokers.filterNot(ele => showPoker.contains(ele))
+            Message.show(name, showPoker, unShowPoker)
+          }
+
+        }
+      }
+    }
+    case Quit(username) => {
+      system.log.debug("{} exit game", username)
+      Table - username
+      context.unbecome()
+    }
+  }
+
 }
 
 object Message {
 
+  def show(userName: String, showPoker: List[(String, Int)], unShowPoker: List[(String, Int)]) = {
+    val showPokerJs = Json.toJson(
+      showPoker.map(ele =>
+        toJson(Map(
+          "color" -> toJson(ele._1),
+          "number" -> toJson(ele._2)))))
+    val unShowPokerJs = Json.toJson(
+      unShowPoker.map(ele =>
+        toJson(Map(
+          "color" -> toJson(ele._1),
+          "number" -> toJson(ele._2)))))
+
+    Table.members.foreach {
+      case (name, user) if (name == userName) =>
+        val result = toJson(Map("showPoker" -> showPokerJs,
+          "unShowPoker" -> unShowPokerJs))
+        notifyOne("showself", name, result.toString())
+      case (name, user) if (name != userName) =>
+        val result = toJson(Map("showPoker" -> showPokerJs))
+        notifyOne("showother", name, result.toString())
+    }
+  }
   def switch(userName: String, poker: List[(String, Int)]) {
     val jsonObj = Json.toJson(
       poker.map(ele =>

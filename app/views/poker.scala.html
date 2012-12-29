@@ -61,6 +61,21 @@ body {
 			chatSocket.onmessage = function(event) {
 				var data = JSON.parse(event.data)
 				//alert("onmessage   data.kind :" + data.kind)
+				if(data.kind == "showself"){
+					$("#ready").css("display","none")
+					$("#switch").css("display","none")
+					$("#show").css("display","none")
+					$("#end").css("display","")
+					layers = Poker.Component.Layers;
+					layers.bottomLayer.clear();
+					var showPoker = data.message.showPoker
+					var unShowPoker = data.message.unShowPoker
+					alert(showPoker)
+					layers.bottomLayer.drawShowCards(JSON.parse(showPoker),
+							JSON.parse(unShowPoker))
+					Poker.Component.stage.draw();
+					
+				}
 				if (data.kind == "dial") {
 					$("#ready").css("display","none")
 					$("#switch").css("display","")
@@ -129,6 +144,24 @@ body {
 				this.disabled = true
 				
 			})
+			
+			$("#showButton").click(function(e){
+				alert("asdfasdf")
+				e.preventDefault()
+				var pokers = Poker.Component.Layers.bottomLayer.layer.children;
+				var result = new Array()
+				for(var j in pokers){
+					if(pokers[j].clicked == "true"){
+						result.push(pokers[j].desc)
+					}
+				}
+				chatSocket.send(JSON.stringify({
+					kind:"show",
+					message:result
+				}))
+				this.disabled = true
+				
+			})
 
 			chatSocket.onclose = function() {
 				alert("websocket closed")
@@ -139,6 +172,7 @@ body {
 			//$("#ready").css("display","none");
 			$("#switch").css("display","none");
 			$("#show").css("display","none");
+			$("#end").css("display","none")
 		}
 	</script>
 
