@@ -65,6 +65,55 @@ body {
 			chatSocket.onmessage = function(event) {
 				var data = JSON.parse(event.data)
 				//alert("onmessage   data.kind :" + data.kind)
+				if(data.kind == "finished"){
+					//clearAll()
+					hidePanel() 
+					
+				}
+				if(data.kind == "opencard"){
+					layers = Poker.Component.Layers;
+					if(data.user == data.members[1]){
+						layers.leftLayer.clear()
+						layers.leftLayer.drawByMessage(JSON.parse(data.message))
+					}
+					if(data.user == data.members[2]){
+						layers.topLeftLayer.clear()
+						layers.topLeftLayer.drawByMessage(JSON.parse(data.message))
+					}
+					if(data.user == data.members[3]){
+						layers.topRightLayer.clear()
+						layers.topRightLayer.drawByMessage(JSON.parse(data.message))
+					}
+					if(data.user == data.members[4]){
+						layers.rightLayer.clear()
+						layers.rightLayer.drawByMessage(JSON.parse(data.message))
+					}
+					Poker.Component.stage.draw();
+				}
+				
+				if(data.kind == "foldresult"){
+					layers = Poker.Component.Layers;
+					if(data.user == data.members[0]){
+						layers.bottomLayer.clear()
+					}
+					if(data.user == data.members[1]){
+						layers.leftLayer.clear()
+						//layers.textLayer.drawFoldLeft()
+					}
+					if(data.user == data.members[2]){
+						layers.leftTopLayer.clear()
+						//layers.textLayer.drawFoldTopLeft()
+					}
+					if(data.user == data.members[3]){
+						layers.rightTopLayer.clear()
+						//layers.textLayer.drawFoldTopRight()
+					}
+					if(data.user == data.members[4]){
+						layers.rightLayer.clear()
+						//layers.textLayer.drawFoldRight()
+					}
+					Poker.Component.stage.draw();
+				}
 				if(data.kind == "toEnd"){
 					$("#end").css("display","")
 				}
@@ -135,6 +184,9 @@ body {
 					layers = Poker.Component.Layers;
 					layers.bottomLayer.clear()
 					var msg = JSON.parse(data.message)
+					if (msg.count == 0){
+						$("#showButton").attr("disabled",false)
+					}
 					layers.bottomLayer.drawSwitchCards(msg.cards, msg.count, 
 							$("#showButton"))
 					Poker.Component.stage.draw();
@@ -157,6 +209,7 @@ body {
 					kind : "ready"
 				}))
 				this.disabled = true
+				clearAll()
 
 			})
 			
@@ -199,6 +252,16 @@ body {
 				chatSocket.send(JSON.stringify({
 					kind:"open",
 				}))
+				$("#openButton").attr("disabled",true)
+				$("#foldButton").attr("disabled",true)
+			})
+			$("#foldButton").click(function(e){
+				e.preventDefault()
+				chatSocket.send(JSON.stringify({
+					kind:"fold",
+				}))
+				$("#openButton").attr("disabled",true)
+				$("#foldButton").attr("disabled",true)
 			})
 
 			chatSocket.onclose = function() {
@@ -207,10 +270,22 @@ body {
 		})
 
 		function hidePanel() {
-			//$("#ready").css("display","none");
+			$("#ready").css("display","");
 			$("#switch").css("display","none");
 			$("#show").css("display","none");
 			$("#end").css("display","none")
+			$("#readyButton").attr("disabled",false)
+			$("#switchButton").attr("disabled",false)
+			$("#showButton").attr("disabled",false)
+			$("#openButton").attr("disabled",false)
+			$("#foldButton").attr("disabled",false)
+		}
+		function clearAll() {
+			Poker.Component.Layers.leftLayer.clear();
+			Poker.Component.Layers.rightLayer.clear();
+			Poker.Component.Layers.topLeftLayer.clear();
+			Poker.Component.Layers.topRightLayer.clear();
+			Poker.Component.Layers.bottomLayer.clear();
 		}
 	</script>
 
@@ -244,13 +319,7 @@ body {
 			Poker.Component.stage.draw();
 		}
 
-		function clearAll() {
-			Poker.Component.Layers.leftLayer.clear();
-			Poker.Component.Layers.rightLayer.clear();
-			Poker.Component.Layers.topLeftLayer.clear();
-			Poker.Component.Layers.topRightLayer.clear();
-			Poker.Component.Layers.bottomLayer.clear();
-		}
+		
 		
 	</script>
 </body>

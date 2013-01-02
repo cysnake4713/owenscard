@@ -332,6 +332,7 @@ Poker.Component.Layers.bottomLayer = (function() {
 						button.attr("disabled",false)
 					}
 				}else if(current == switchTotal){
+//					button.attr("disabled",false)
 					if (this.clicked != null) {
 						this.setY(this.getY()
 								+ Poker.CONST.POKER_CLICK_UP_SPACING);
@@ -523,6 +524,47 @@ Poker.Component.Layers.textLayer = (function() {
 			complexText.setPosition(Poker.Position.TopRight.centerX,
 					Poker.Position.TopRight.centerY - 40)
 			complexText.setText(name)
+			this.layer.add(complexText)
+		}
+	}
+	
+	ThisLayer.prototype.drawFoldLeft = function(name) {
+		if (name != null) {
+			complexText = this.complexText.clone()
+			complexText.setPosition(Poker.Position.Left.centerX,
+					Poker.Position.Left.centerY)
+			complexText.setText("弃牌")
+			complexText.setFontSize(20)
+			this.layer.add(complexText)
+		}
+	}
+	ThisLayer.prototype.drawFoldRight = function(name) {
+		if (name != null) {
+			complexText = this.complexText.clone()
+			complexText.setPosition(Poker.Position.Right.centerX,
+					Poker.Position.Right.centerY)
+			complexText.setText("弃牌")
+			complexText.setFontSize(20)
+			this.layer.add(complexText)
+		}
+	}
+	ThisLayer.prototype.drawFoldTopLeft = function(name) {
+		if (name != null) {
+			complexText = this.complexText.clone()
+			complexText.setPosition(Poker.Position.TopLeft.centerX,
+					Poker.Position.TopLeft.centerY)
+			complexText.setText("弃牌")
+			complexText.setFontSize(20)
+			this.layer.add(complexText)
+		}
+	}
+	ThisLayer.prototype.drawFoldTopRight = function(name) {
+		if (name != null) {
+			complexText = this.complexText.clone()
+			complexText.setPosition(Poker.Position.TopRight.centerX,
+					Poker.Position.TopRight.centerY)
+			complexText.setText("弃牌")
+			complexText.setFontSize(20)
 			this.layer.add(complexText)
 		}
 	}

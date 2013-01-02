@@ -174,6 +174,40 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
 
   def end: Receive = {
     case GetMessage(name, jsValue) => {
+      Logger.debug("end: get Message" + jsValue)
+      (jsValue \ "kind").asOpt[String] match {
+        case Some("open") => {
+          Table.members(name).status = true
+          if (Table.isReady()) {
+            Table.members.foreach {
+              case (name, user) if (user.pokers != null) =>
+                Message.openAll(name, user.pokers)
+              case _ =>
+            }
+            Table.setAllNotReady()
+            Message.finished()
+            context.unbecome()
+          }
+        }
+
+        case Some("fold") => {
+          Table.members(name).status = true
+          Table.members(name).pokers = null
+          Message.fold(name)
+          if (Table.isReady()) {
+            Table.members.foreach {
+              case (name, user) if (user.pokers != null) =>
+                Message.openAll(name, user.pokers)
+              case _ =>
+            }
+            Table.setAllNotReady()
+            Message.finished()
+            context.unbecome()
+          }
+        }
+        case None =>
+
+      }
 
     }
     case Quit(username) => {
@@ -182,10 +216,27 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
       context.unbecome()
     }
   }
-
 }
 
 object Message {
+
+  def finished(){
+    notifyAll("finished","","")
+  }
+  
+  def openAll(userName: String, poker: List[(String, Int)]) {
+    val jsonObj = Json.toJson(
+      poker.map(ele =>
+        toJson(Map(
+          "color" -> toJson(ele._1),
+          "number" -> toJson(ele._2)))))
+    Logger.debug("dial:generate jsonObj=" + jsonObj)
+    notifyAll("opencard", userName, jsonObj.toString)
+  }
+
+  def fold(userName: String) {
+    notifyAll("foldresult", userName, "")
+  }
 
   def toEnd() {
     notifyAll("toEnd", "", "")
