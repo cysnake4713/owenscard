@@ -169,7 +169,7 @@ FourLayer.prototype.drawReceiveCards = function() {
 };
 
 FourLayer.prototype.drawShowCards = function(msg, switchTotal) {
-	var msg = [ {
+	var back = [ {
 		'color' : 'back',
 		'number' : '0'
 	}, {
@@ -185,36 +185,42 @@ FourLayer.prototype.drawShowCards = function(msg, switchTotal) {
 		'color' : 'back',
 		'number' : '0'
 	} ];
-	var pokers = this.drawByMessage(backs, function(e, i) {
-		if (i >= 5 - switchTotal) {
-			e.transitionTo({
-				scale : {
-					x : 0,
-					y : 1
-				},
-				duration : 0.4
-			});
-		}
-	});
-	var father = this;
-	setTimeout(function() {
-		father.clear();
-		father.drawByMessage(msg, function(e, i) {
+	var tempmsg = back.concat(msg)
+	var finalmsg = tempmsg.slice(-5)
+	if (switchTotal != 0) {
+		var pokers = this.drawByMessage(finalmsg, function(e, i) {
 			if (i >= 5 - switchTotal) {
-				e.setScale({
-					x : 0,
-					y : 1
-				});
 				e.transitionTo({
 					scale : {
-						x : 1,
+						x : 0,
 						y : 1
 					},
 					duration : 0.4
 				});
 			}
 		});
-	}, 500);
+		var father = this;
+		setTimeout(function() {
+			father.clear();
+			father.drawByMessage(finalmsg, function(e, i) {
+				if (i >= 5 - switchTotal) {
+					e.setScale({
+						x : 0,
+						y : 1
+					});
+					e.transitionTo({
+						scale : {
+							x : 1,
+							y : 1
+						},
+						duration : 0.4
+					});
+				}
+			});
+		}, 500);
+	} else {
+		this.drawByMessage(back);
+	}
 }
 
 Poker.Component.Layers.dataLayer = (function() {
@@ -290,6 +296,54 @@ Poker.Component.Layers.bottomLayer = (function() {
 							Poker.Component.stage.draw();
 						}
 					});
+		});
+	}
+
+	ThisLayer.prototype.drawSwitchCards = function(message, count, theButton) {
+		var switchTotal = count
+		var current = 0
+		var button = theButton
+		return this.drawByMessage(message, function(e) {
+			e.on("mouseover", function() {
+				this.setScale(1.1);
+				Poker.Component.stage.draw();
+			});
+			e.on("mouseout", function() {
+				this.setScale(1);
+				Poker.Component.stage.draw();
+			});
+			e.on("click", function() {
+//				alert("current="+current+"  switchTotal="+switchTotal)
+				if (current < switchTotal) {
+					if (this.clicked != null) {
+						this.setY(this.getY()
+								+ Poker.CONST.POKER_CLICK_UP_SPACING);
+						Poker.Component.stage.draw();
+						this.clicked = null;
+						current -= 1
+					} else {
+						this.clicked = "true";
+						this.setY(this.getY()
+								- Poker.CONST.POKER_CLICK_UP_SPACING);
+						Poker.Component.stage.draw();
+						current += 1
+					}
+					if (current == switchTotal){
+						button.attr("disabled",false)
+					}
+				}else if(current == switchTotal){
+					if (this.clicked != null) {
+						this.setY(this.getY()
+								+ Poker.CONST.POKER_CLICK_UP_SPACING);
+						Poker.Component.stage.draw();
+						this.clicked = null;
+						current -= 1
+					}
+					if (current < switchTotal){
+						button.attr("disabled",true)
+					}
+				}
+			});
 		});
 	}
 	// drawSwitchCards : this.drawReceiveCards

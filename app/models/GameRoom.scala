@@ -122,9 +122,10 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
           if (Table.isReady()) {
             Table.members.foreach {
               case (name, user) =>
-                user.pokers = user.pokers ++ Poker.dialPoker(5 - user.pokers.size)
+                val switchCount = 5 - user.pokers.size
+                user.pokers = user.pokers ++ Poker.dialPoker(switchCount)
                 user.pokers = user.pokers.sortWith((e1, e2) => e1._2 < e2._2)
-                Message.switch(name, user.pokers)
+                Message.switch(name, switchCount, user.pokers)
             }
             Table.setAllNotReady()
             become(show)
@@ -153,10 +154,27 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
             val showPoker = (showPokersColor zip showPokersNum).toList
             val unShowPoker = Table.members(name).pokers.filterNot(ele => showPoker.contains(ele))
             Message.show(name, showPoker, unShowPoker)
+            Table.members(name).status = true
+            if (Table.isReady()) {
+              Table.setAllNotReady()
+              Message.toEnd()
+              become(end)
+            }
           }
-
         }
+        case None =>
       }
+    }
+    case Quit(username) => {
+      system.log.debug("{} exit game", username)
+      Table - username
+      context.unbecome()
+    }
+  }
+
+  def end: Receive = {
+    case GetMessage(name, jsValue) => {
+
     }
     case Quit(username) => {
       system.log.debug("{} exit game", username)
@@ -168,6 +186,10 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
 }
 
 object Message {
+
+  def toEnd() {
+    notifyAll("toEnd", "", "")
+  }
 
   def show(userName: String, showPoker: List[(String, Int)], unShowPoker: List[(String, Int)]) = {
     val showPokerJs = Json.toJson(
@@ -187,16 +209,18 @@ object Message {
           "unShowPoker" -> unShowPokerJs))
         notifyOne("showself", name, result.toString())
       case (name, user) if (name != userName) =>
-        val result = toJson(Map("showPoker" -> showPokerJs))
+        val result = toJson(Map("username" -> toJson(userName), "showPoker" -> showPokerJs, "count" -> toJson(showPoker.size)))
         notifyOne("showother", name, result.toString())
     }
   }
-  def switch(userName: String, poker: List[(String, Int)]) {
+  def switch(userName: String, count: Int, poker: List[(String, Int)]) {
     val jsonObj = Json.toJson(
-      poker.map(ele =>
-        toJson(Map(
-          "color" -> toJson(ele._1),
-          "number" -> toJson(ele._2)))))
+      Map("cards" -> toJson(
+        poker.map(ele =>
+          toJson(Map(
+            "color" -> toJson(ele._1),
+            "number" -> toJson(ele._2))))),
+        "count" -> toJson(count)))
     Logger.debug("dial:generate jsonObj=" + jsonObj)
     notifyOne("switchresult", userName, jsonObj.toString())
   }
@@ -236,7 +260,6 @@ object Message {
     Logger.debug("notifyOne: send message:" + msg)
     Table.members.foreach {
       case (key, user) if key == userName =>
-        Logger.debug("find")
         user.channel.push(msg)
       case _ =>
     }

@@ -41,6 +41,10 @@ body {
 			<div id="switch">
 				<button id="switchButton" class="btn btn-large btn-primary">换牌</button>
 			</div>
+			<div id="end">
+				<button id="openButton" class="btn btn-large btn-danger">开牌</button>
+				<button id="foldButton" class="btn btn-large btn-primary">弃牌</button>
+			</div>
 		</div>
 	</div>
 	<script type="text/javascript" charset="utf-8">
@@ -61,21 +65,47 @@ body {
 			chatSocket.onmessage = function(event) {
 				var data = JSON.parse(event.data)
 				//alert("onmessage   data.kind :" + data.kind)
+				if(data.kind == "toEnd"){
+					$("#end").css("display","")
+				}
 				if(data.kind == "showself"){
 					$("#ready").css("display","none")
 					$("#switch").css("display","none")
 					$("#show").css("display","none")
-					$("#end").css("display","")
 					layers = Poker.Component.Layers;
 					layers.bottomLayer.clear();
-					var showPoker = data.message.showPoker
-					var unShowPoker = data.message.unShowPoker
-					alert(showPoker)
-					layers.bottomLayer.drawShowCards(JSON.parse(showPoker),
-							JSON.parse(unShowPoker))
+					var showPoker = (JSON.parse(data.message)).showPoker
+					var unShowPoker = (JSON.parse(data.message)).unShowPoker
+					layers.bottomLayer.drawShowCards(showPoker, unShowPoker)
 					Poker.Component.stage.draw();
 					
 				}
+				if(data.kind=="showother"){
+					layers = Poker.Component.Layers;
+					var showPoker = (JSON.parse(data.message)).showPoker
+					var count = (JSON.parse(data.message)).count
+					if(data.members[1]==(JSON.parse(data.message)).username){
+						layers.leftLayer.clear()
+						layers.leftLayer.drawShowCards(showPoker,count)
+						Poker.Component.stage.draw();
+					}
+					if(data.members[2]==(JSON.parse(data.message)).username){
+						layers.leftTopLayer.clear()
+						layers.leftTopLayer.drawShowCards(showPoker,count)
+						Poker.Component.stage.draw();
+					}
+					if(data.members[3]==(JSON.parse(data.message)).username){
+						layers.rightTopLayer.clear()
+						layers.rightTopLayer.drawShowCards(showPoker,count)
+						Poker.Component.stage.draw();
+					}
+					if(data.members[4]==(JSON.parse(data.message)).username){
+						layers.rightLayer.clear()
+						layers.rightLayer.drawShowCards(showPoker,count)
+						Poker.Component.stage.draw();
+					}
+				}
+				
 				if (data.kind == "dial") {
 					$("#ready").css("display","none")
 					$("#switch").css("display","")
@@ -101,10 +131,12 @@ body {
 					$("#ready").css("display","none")
 					$("#switch").css("display","none")
 					$("#show").css("display","")
+					$("#showButton").attr("disabled",true)
 					layers = Poker.Component.Layers;
 					layers.bottomLayer.clear()
-					var cards = data.message
-					layers.bottomLayer.drawReceiveCards(JSON.parse(cards))
+					var msg = JSON.parse(data.message)
+					layers.bottomLayer.drawSwitchCards(msg.cards, msg.count, 
+							$("#showButton"))
 					Poker.Component.stage.draw();
 				}
 
@@ -146,7 +178,6 @@ body {
 			})
 			
 			$("#showButton").click(function(e){
-				alert("asdfasdf")
 				e.preventDefault()
 				var pokers = Poker.Component.Layers.bottomLayer.layer.children;
 				var result = new Array()
@@ -161,6 +192,13 @@ body {
 				}))
 				this.disabled = true
 				
+			})
+			
+			$("#openButton").click(function(e){
+				e.preventDefault()
+				chatSocket.send(JSON.stringify({
+					kind:"open",
+				}))
 			})
 
 			chatSocket.onclose = function() {
