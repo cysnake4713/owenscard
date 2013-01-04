@@ -13,7 +13,7 @@ import play.api.libs.json.JsValue
 
 class User(val name: String, var status: Boolean, val channel: PushEnumerator[JsValue]) {
   var pokers = List.empty[(String, Int)]
-
+  var showPokers = List.empty[(String, Int)]
   override def toString = {
     "name: " + name + " status:" + status + " channel:" + channel
   }

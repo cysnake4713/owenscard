@@ -70,6 +70,22 @@ body {
 					hidePanel()
 
 				}
+                if(data.kind =="sync"){
+                    layers = Poker.Component.Layers;
+                        if (data.members[1]) {
+                        layers.leftLayer.drawReceiveCards();
+                    }
+                    if (data.members[2]) {
+                        layers.topLeftLayer.drawReceiveCards();
+                    }
+                    if (data.members[3]) {
+                        layers.topRightLayer.drawReceiveCards();
+                    }
+                    if (data.members[4]) {
+                        layers.rightLayer.drawReceiveCards();
+                    }
+                    Poker.Component.stage.draw();
+                }
 				if(data.kind == "opencard"){
 					layers = Poker.Component.Layers;
 					if(data.user == data.members[1]){

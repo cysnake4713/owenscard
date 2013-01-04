@@ -13,11 +13,29 @@ import play.Logger
  */
 object MessageSender {
 
+  def sync(userName: String)(implicit table: Table) {
+    sendCurrentMemberToUser(userName)
+    notifyOne(table, "sync", "", "")
+    for ((name, user) <- table.gamingMembers) {
+      if (user.showPokers.nonEmpty) {
+        val showPokerJs = Json.toJson(
+          user.showPokers.map(ele =>
+            toJson(Map(
+              "color" -> toJson(ele._1),
+              "number" -> toJson(ele._2)))))
+        val result = toJson(Map("username" -> toJson(userName),
+          "showPoker" -> showPokerJs, "count" -> toJson(user.showPokers.size)))
+        notifyOne(table, "showother", userName, result.toString())
+      }
+
+    }
+  }
+
   def finished()(implicit table: Table) {
     notifyAll(table, "finished", "", "")
   }
 
-  def openAll(userName: String, poker: List[(String, Int)])(implicit table: Table) {
+  def open(userName: String, poker: List[(String, Int)])(implicit table: Table) {
     val jsonObj = Json.toJson(
       poker.map(ele =>
         toJson(Map(
@@ -47,7 +65,7 @@ object MessageSender {
           "color" -> toJson(ele._1),
           "number" -> toJson(ele._2)))))
 
-    table.members.foreach {
+    (table.preparingMembers ++ table.gamingMembers).foreach {
       case (name, user) if (name == userName) =>
         val result = toJson(Map("showPoker" -> showPokerJs,
           "unShowPoker" -> unShowPokerJs))
@@ -103,7 +121,7 @@ object MessageSender {
         "members" -> JsArray(
           memberForJS.map(JsString))))
     Logger.debug("notifyOne: send message:" + msg)
-    table.members.foreach {
+    (table.preparingMembers ++ table.gamingMembers).foreach {
       case (key, user) if key == userName =>
         user.channel.push(msg)
       case _ =>
@@ -111,7 +129,7 @@ object MessageSender {
   }
 
   def notifyAll(table: Table, kind: String, user: String, text: String) {
-    table.members.foreach {
+    (table.preparingMembers ++ table.gamingMembers).foreach {
       case (userName, ele) => {
         val index = table.memberOrder.indexWhere(_ == userName)
         val memberForJS = table.memberOrder.slice(index, table.memberOrder.size) ::: table.memberOrder.slice(0, index)
