@@ -300,7 +300,7 @@ Poker.Component.Layers.bottomLayer = (function() {
 	}
 
 	ThisLayer.prototype.drawSwitchCards = function(message, count, theButton) {
-		var switchTotal = count
+		var switchTotal = ( count ==5 ) ? 0 : count
 		var current = 0
 		var button = theButton
 		return this.drawByMessage(message, function(e) {

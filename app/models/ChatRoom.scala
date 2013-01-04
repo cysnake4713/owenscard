@@ -2,7 +2,6 @@ package models
 
 import akka.actor._
 import akka.util.duration._
-import play.api._
 import play.api.libs.json._
 import play.api.libs.iteratee._
 import play.api.libs.concurrent._
@@ -11,30 +10,6 @@ import akka.pattern.ask
 import play.api.Play.current
 import play.api.i18n.Messages
 
-object Robot {
-
-  def apply(chatRoom: ActorRef) {
-
-    // Create an Iteratee that log all messages to the console.
-    val loggerIteratee = Iteratee.foreach[JsValue](event => Logger("robot").info(event.toString))
-
-    implicit val timeout = Timeout(1 second)
-    // Make the robot join the room
-    chatRoom ? (Join("Robot")) map {
-      case Connected(robotChannel) =>
-        // Apply this Enumerator on the logger.
-        robotChannel |>> loggerIteratee
-    }
-
-    // Make the robot talk every 30 seconds
-    Akka.system.scheduler.schedule(
-      30 seconds,
-      30 seconds,
-      chatRoom,
-      Talk("Robot", "I'm still alive"))
-  }
-
-}
 
 object ChatRoom {
 
@@ -111,7 +86,6 @@ class ChatRoom extends Actor with akka.actor.ActorLogging {
     case Talk(username, text) => {
       notifyAll("talk", username, text)
     }
-
     case Quit(username) => {
       members = members - username
       membersStatus = membersStatus - username
@@ -121,9 +95,7 @@ class ChatRoom extends Actor with akka.actor.ActorLogging {
     case Ready(username) => {
       membersStatus = membersStatus.updated(username, true)
       system.log.debug("chatRoom:ready status {}", membersStatus)
-      if ((true /: membersStatus) { _ && _._2 }) {
-        notifyAll("go", "", "");
-      }
+      if ((true /: membersStatus) { _ && _._2 }) notifyAll("go", "", "")
     }
 
   }
@@ -142,12 +114,3 @@ class ChatRoom extends Actor with akka.actor.ActorLogging {
   }
 
 }
-
-case class Ready(username: String)
-case class Join(username: String)
-case class Quit(username: String)
-case class Talk(username: String, text: String)
-case class NotifyJoin(username: String)
-
-case class Connected(enumerator: Enumerator[JsValue])
-case class CannotConnect(msg: String)

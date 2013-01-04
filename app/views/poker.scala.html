@@ -56,7 +56,7 @@ body {
 			var WS = window['MozWebSocket'] ? MozWebSocket : WebSocket
 			chatSocket = new WS(
 					'@routes.Application.gameOn(userName).webSocketURL()')
-		
+
 		chatSocket.onopen = function(event) {
 				chatSocket.send(JSON.stringify({
 					kind : "getMember"
@@ -67,8 +67,8 @@ body {
 				//alert("onmessage   data.kind :" + data.kind)
 				if(data.kind == "finished"){
 					//clearAll()
-					hidePanel() 
-					
+					hidePanel()
+
 				}
 				if(data.kind == "opencard"){
 					layers = Poker.Component.Layers;
@@ -90,7 +90,7 @@ body {
 					}
 					Poker.Component.stage.draw();
 				}
-				
+
 				if(data.kind == "foldresult"){
 					layers = Poker.Component.Layers;
 					if(data.user == data.members[0]){
@@ -127,7 +127,7 @@ body {
 					var unShowPoker = (JSON.parse(data.message)).unShowPoker
 					layers.bottomLayer.drawShowCards(showPoker, unShowPoker)
 					Poker.Component.stage.draw();
-					
+
 				}
 				if(data.kind=="showother"){
 					layers = Poker.Component.Layers;
@@ -154,7 +154,7 @@ body {
 						Poker.Component.stage.draw();
 					}
 				}
-				
+
 				if (data.kind == "dial") {
 					$("#ready").css("display","none")
 					$("#switch").css("display","")
@@ -184,10 +184,10 @@ body {
 					layers = Poker.Component.Layers;
 					layers.bottomLayer.clear()
 					var msg = JSON.parse(data.message)
-					if (msg.count == 0){
+					if (msg.count == 0 || msg.count == 5){
 						$("#showButton").attr("disabled",false)
 					}
-					layers.bottomLayer.drawSwitchCards(msg.cards, msg.count, 
+					layers.bottomLayer.drawSwitchCards(msg.cards, msg.count,
 							$("#showButton"))
 					Poker.Component.stage.draw();
 				}
@@ -212,7 +212,7 @@ body {
 				clearAll()
 
 			})
-			
+
 			$("#switchButton").click(function(e){
 				e.preventDefault()
 				var pokers = Poker.Component.Layers.bottomLayer.layer.children;
@@ -227,9 +227,9 @@ body {
 					message:result
 				}))
 				this.disabled = true
-				
+
 			})
-			
+
 			$("#showButton").click(function(e){
 				e.preventDefault()
 				var pokers = Poker.Component.Layers.bottomLayer.layer.children;
@@ -244,9 +244,9 @@ body {
 					message:result
 				}))
 				this.disabled = true
-				
+
 			})
-			
+
 			$("#openButton").click(function(e){
 				e.preventDefault()
 				chatSocket.send(JSON.stringify({
@@ -319,8 +319,8 @@ body {
 			Poker.Component.stage.draw();
 		}
 
-		
-		
+
+
 	</script>
 </body>
 </html>
