@@ -1,14 +1,14 @@
 package models
 
 
-object Table {
+class Table {
   var members: Map[String, User] = Map.empty[String, User]
   var memberOrder: List[String] = List(null, null, null, null, null)
   val pokers = new Poker
 
   def dialPokerToUser(user:User){
     val pokerNum = 5 - user.pokers.size
-    dialPokerToUser(user.name, pokerNum)
+    dialPokerToUser(user, pokerNum)
   }
 
   private def dialPokerToUser(user: User, pokerNum: Int) {

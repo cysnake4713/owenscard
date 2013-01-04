@@ -13,29 +13,29 @@ import play.Logger
  */
 object MessageSender {
 
-  def finished() {
-    notifyAll("finished", "", "")
+  def finished()(implicit table: Table) {
+    notifyAll(table, "finished", "", "")
   }
 
-  def openAll(userName: String, poker: List[(String, Int)]) {
+  def openAll(userName: String, poker: List[(String, Int)])(implicit table: Table) {
     val jsonObj = Json.toJson(
       poker.map(ele =>
         toJson(Map(
           "color" -> toJson(ele._1),
           "number" -> toJson(ele._2)))))
     Logger.debug("dial:generate jsonObj=" + jsonObj)
-    notifyAll("opencard", userName, jsonObj.toString())
+    notifyAll(table, "opencard", userName, jsonObj.toString())
   }
 
-  def fold(userName: String) {
-    notifyAll("foldresult", userName, "")
+  def fold(userName: String)(implicit table: Table) {
+    notifyAll(table, "foldresult", userName, "")
   }
 
-  def end() {
-    notifyAll("toEnd", "", "")
+  def end()(implicit table: Table) {
+    notifyAll(table, "toEnd", "", "")
   }
 
-  def show(userName: String, showPoker: List[(String, Int)], unShowPoker: List[(String, Int)]) {
+  def show(userName: String, showPoker: List[(String, Int)], unShowPoker: List[(String, Int)])(implicit table: Table) {
     val showPokerJs = Json.toJson(
       showPoker.map(ele =>
         toJson(Map(
@@ -47,18 +47,18 @@ object MessageSender {
           "color" -> toJson(ele._1),
           "number" -> toJson(ele._2)))))
 
-    Table.members.foreach {
+    table.members.foreach {
       case (name, user) if (name == userName) =>
         val result = toJson(Map("showPoker" -> showPokerJs,
           "unShowPoker" -> unShowPokerJs))
-        notifyOne("showself", name, result.toString())
+        notifyOne(table, "showself", name, result.toString())
       case (name, user) if (name != userName) =>
         val result = toJson(Map("username" -> toJson(userName), "showPoker" -> showPokerJs, "count" -> toJson(showPoker.size)))
-        notifyOne("showother", name, result.toString())
+        notifyOne(table, "showother", name, result.toString())
     }
   }
 
-  def switch(userName: String, count: Int, poker: List[(String, Int)]) {
+  def switch(userName: String, count: Int, poker: List[(String, Int)])(implicit table: Table) {
     val jsonObj = Json.toJson(
       Map("cards" -> toJson(
         poker.map(ele =>
@@ -67,34 +67,34 @@ object MessageSender {
             "number" -> toJson(ele._2))))),
         "count" -> toJson(count)))
     Logger.debug("dial:generate jsonObj=" + jsonObj)
-    notifyOne("switchresult", userName, jsonObj.toString())
+    notifyOne(table, "switchresult", userName, jsonObj.toString())
   }
 
-  def sendCurrentMemberToUser(userName: String) {
-    notifyOne("members", userName, "")
+  def sendCurrentMemberToUser(userName: String)(implicit table: Table) {
+    notifyOne(table, "members", userName, "")
   }
 
-  def quit(userName: String) {
-    notifyAll("quit", userName, "")
+  def quit(userName: String)(implicit table: Table) {
+    notifyAll(table, "quit", userName, "")
   }
 
-  def join(user: String) {
-    notifyAll("members", user, "")
+  def join(user: String)(implicit table: Table) {
+    notifyAll(table, "members", user, "")
   }
 
-  def dial(userName: String, poker: List[(String, Int)]) {
+  def dial(userName: String, poker: List[(String, Int)])(implicit table: Table) {
     val jsonObj = Json.toJson(
       poker.map(ele =>
         toJson(Map(
           "color" -> toJson(ele._1),
           "number" -> toJson(ele._2)))))
     Logger.debug("dial:generate jsonObj=" + jsonObj)
-    notifyOne("dial", userName, jsonObj.toString())
+    notifyOne(table, "dial", userName, jsonObj.toString())
   }
 
-  def notifyOne(kind: String, userName: String, text: String) {
-    val index = Table.memberOrder.indexWhere(_ == userName)
-    val memberForJS = Table.memberOrder.slice(index, Table.memberOrder.size) ::: Table.memberOrder.slice(0, index)
+  def notifyOne(table: Table, kind: String, userName: String, text: String) {
+    val index = table.memberOrder.indexWhere(_ == userName)
+    val memberForJS = table.memberOrder.slice(index, table.memberOrder.size) ::: table.memberOrder.slice(0, index)
     val msg = JsObject(
       Seq(
         "kind" -> JsString(kind),
@@ -103,18 +103,18 @@ object MessageSender {
         "members" -> JsArray(
           memberForJS.map(JsString))))
     Logger.debug("notifyOne: send message:" + msg)
-    Table.members.foreach {
+    table.members.foreach {
       case (key, user) if key == userName =>
         user.channel.push(msg)
       case _ =>
     }
   }
 
-  def notifyAll(kind: String, user: String, text: String) {
-    Table.members.foreach {
+  def notifyAll(table: Table, kind: String, user: String, text: String) {
+    table.members.foreach {
       case (userName, ele) => {
-        val index = Table.memberOrder.indexWhere(_ == userName)
-        val memberForJS = Table.memberOrder.slice(index, Table.memberOrder.size) ::: Table.memberOrder.slice(0, index)
+        val index = table.memberOrder.indexWhere(_ == userName)
+        val memberForJS = table.memberOrder.slice(index, table.memberOrder.size) ::: table.memberOrder.slice(0, index)
         val msg = JsObject(
           Seq(
             "kind" -> JsString(kind),

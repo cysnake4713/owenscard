@@ -40,7 +40,7 @@ class Poker {
 
   def dialPoker(number: Int) = {
     if (currentPokers.size < number) shufflePoker()
-    val tempList = currentPokers.splitAt(number)
+    val tempList = currentPokers splitAt number
     currentPokers = tempList._2
     tempList._1
   }
