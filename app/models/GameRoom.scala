@@ -5,16 +5,15 @@ import akka.util.duration._
 import play.api.libs.json._
 import play.api.libs.iteratee._
 import play.api.libs.concurrent._
-import akka.util.Timeout
 import akka.pattern.ask
 import play.api.Play.current
 import play.api.i18n.Messages
 import play.Logger
+import akka.util.Timeout
 
 object GameRoom {
 
   implicit val timeout = Timeout(1 second)
-  var users = Map.empty[String, Promise[(Iteratee[JsValue, _], Enumerator[JsValue])]]
 
   lazy val default = {
     val roomActor = Akka.system.actorOf(Props[GameRoom])
@@ -59,10 +58,10 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
       else {
         if (Table.size == 5) sender ! CannotConnect("already have 5 users")
         else {
-          Logger.debug(username + " has join the game")
+          Logger.debug(username + " has join the game.")
           Table + new User(username, false, channel)
           Logger.debug("current table member:" + Table.members)
-          Message.join(username)
+          MessageSender.join(username)
           sender ! Connected(channel)
 
         }
@@ -76,20 +75,19 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
           Table.members(name).status = true
           Logger.debug("is everyone ready? " + Table.isReady)
           if (Table.isReady) {
-            Poker.shufflePoker()
+            Table.shufflePoker()
             for ((key, user) <- Table.members) {
-              Logger.debug("dial poker!")
-              val pokers = Poker.dialPoker(5)
-              user.pokers = pokers
-              Message.dial(user.name, pokers)
+              Logger.debug("dial poker to " + user)
+              Table.dialPokerToUser(user)
+              MessageSender.dial(user.name, user.pokers)
             }
             Table.setAllNotReady()
-            become(start)
+            become(switch)
           }
 
         case Some("getMember") => {
           Logger.debug(name + " want getMember")
-          Message.sendMember(name)
+          MessageSender.sendCurrentMemberToUser(name)
         }
 
         case None => {
@@ -98,33 +96,24 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
       }
     }
 
-    case Quit(username) => {
-      Logger.debug(username + " exit game")
-      Table - username
-      Message.quit(username)
-      context.unbecome()
-    }
+    case Quit(username) => quitGame(username)
   }
 
-  def start: Receive = {
+  def switch: Receive = {
     case GetMessage(name, jsValue) => {
       Logger.debug("Start: get Message" + jsValue)
       (jsValue \ "kind").asOpt[String] match {
         case Some("switch") => {
           if (!Table.members(name).status) {
-            val switchPokersColor = (jsValue \ "message" \\ "color").map(ele => ele.as[String])
-            val switchPokersNum = (jsValue \ "message" \\ "number").map(ele => ele.as[Int])
-            val result = (switchPokersColor zip switchPokersNum).toList
-            Table.members(name).pokers = Table.members(name).pokers.filterNot(ele => result.contains(ele))
+            val switchCards = MessageReceive.parseSwitchCards(jsValue)
+            Table.members(name).pokers = Table.members(name).pokers.filterNot(switchCards.contains(_))
             Table.members(name).status = true
           }
           if (Table.isReady) {
-            Table.members.foreach {
-              case (name, user) =>
-                val switchCount = 5 - user.pokers.size
-                user.pokers = user.pokers ++ Poker.dialPoker(switchCount)
-                user.pokers = user.pokers.sortWith((e1, e2) => e1._2 < e2._2)
-                Message.switch(name, switchCount, user.pokers)
+            for ((name, user) <- Table.members) {
+              val switchCount = 5 - user.pokers.size
+              Table.dialPokerToUser(user)
+              MessageSender.switch(name, switchCount, user.pokers)
             }
             Table.setAllNotReady()
             become(show)
@@ -135,11 +124,7 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
       }
     }
 
-    case Quit(username) => {
-      system.log.debug("{} exit game", username)
-      Table - username
-      context.unbecome()
-    }
+    case Quit(username) => quitGame(username)
   }
 
   def show: Receive = {
@@ -148,15 +133,13 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
       (jsValue \ "kind").asOpt[String] match {
         case Some("show") => {
           if (!Table.members(name).status) {
-            val showPokersColor = (jsValue \ "message" \\ "color").map(ele => ele.as[String])
-            val showPokersNum = (jsValue \ "message" \\ "number").map(ele => ele.as[Int])
-            val showPoker = (showPokersColor zip showPokersNum).toList
+            val showPoker = MessageReceive.parseShowCards(jsValue)
             val unShowPoker = Table.members(name).pokers.filterNot(ele => showPoker.contains(ele))
-            Message.show(name, showPoker, unShowPoker)
+            MessageSender.show(name, showPoker, unShowPoker)
             Table.members(name).status = true
             if (Table.isReady) {
               Table.setAllNotReady()
-              Message.end()
+              MessageSender.end()
               become(end)
             }
           }
@@ -164,11 +147,7 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
         case None =>
       }
     }
-    case Quit(username) => {
-      system.log.debug("{} exit game", username)
-      Table - username
-      context.unbecome()
-    }
+    case Quit(username) => quitGame(username)
   }
 
   def end: Receive = {
@@ -178,13 +157,13 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
         case Some("open") => {
           Table.members(name).status = true
           if (Table.isReady) {
-            Table.members.foreach {
-              case (name, user) if (user.pokers != null) =>
-                Message.openAll(name, user.pokers)
-              case _ =>
+            for ((name, user) <- Table.members) {
+              if (user.pokers != null)
+                MessageSender.openAll(name, user.pokers)
             }
             Table.setAllNotReady()
-            Message.finished()
+            MessageSender.finished()
+            Table.clean()
             context.unbecome()
           }
         }
@@ -192,15 +171,14 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
         case Some("fold") => {
           Table.members(name).status = true
           Table.members(name).pokers = null
-          Message.fold(name)
+          MessageSender.fold(name)
           if (Table.isReady) {
-            Table.members.foreach {
-              case (name, user) if (user.pokers != null) =>
-                Message.openAll(name, user.pokers)
-              case _ =>
+            for ((name, user) <- Table.members) {
+              if (user.pokers != null)
+                MessageSender.openAll(name, user.pokers)
             }
             Table.setAllNotReady()
-            Message.finished()
+            MessageSender.finished()
             context.unbecome()
           }
         }
@@ -209,11 +187,13 @@ class GameRoom extends Actor with akka.actor.ActorLogging {
       }
 
     }
-    case Quit(username) => {
-      system.log.debug("{} exit game", username)
-      Table - username
-      context.unbecome()
-    }
+    case Quit(username) => quitGame(username)
+  }
+
+  def quitGame(userName: String) {
+    system.log.debug("{} exit game", userName)
+    Table - userName
+    context.unbecome()
   }
 }
 

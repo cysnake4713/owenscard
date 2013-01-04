@@ -1,13 +1,28 @@
 package models
 
-import scala.util.Random
-import play.api.libs.iteratee.PushEnumerator
-import play.api.libs.json.JsValue
-
 
 object Table {
   var members: Map[String, User] = Map.empty[String, User]
   var memberOrder: List[String] = List(null, null, null, null, null)
+  val pokers = new Poker
+
+  def dialPokerToUser(user:User){
+    val pokerNum = 5 - user.pokers.size
+    dialPokerToUser(user.name, pokerNum)
+  }
+
+  private def dialPokerToUser(user: User, pokerNum: Int) {
+    dialPokerToUser(user.name, pokerNum)
+  }
+
+  private def dialPokerToUser(userName: String, pokerNum: Int) {
+    members(userName).pokers = (members(userName).pokers ++ pokers.dialPoker(pokerNum))
+      .sortWith((e1, e2) => e1._2 < e2._2)
+  }
+
+  def shufflePoker() {
+    pokers.shufflePoker()
+  }
 
   def +(user: User) {
     add(user)
@@ -55,49 +70,11 @@ object Table {
       case (name, user) => user.status = false
     }
   }
-}
 
-class User(val name: String, var status: Boolean, val channel: PushEnumerator[JsValue]) {
-  var pokers = List.empty[(String, Int)]
-
-  override def toString = {
-    "name: " + name + " status:" + status + " channel:" + channel
+  def clean() {
+    members.foreach(ele => ele._2.pokers = List.empty[(String, Int)])
   }
 }
 
-object Poker {
-  private val color = Set("DIAMOND", "CLUB", "HEARTS", "SPADE")
-  private val number = Set(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
-  private val pokers = color flatMap {
-    x => number map (y => (x, y))
-  }
-  private var currentPokers = List.empty[(String, Int)]
 
-  /**
-   * get A new shuffled poker list
-   * return List
-   */
-  private def getShuffledPoker = {
-    //use Fisher_Yates算法
-    var pokerList = pokers.toList
-    //    var pokerList = number.toList
-    for (i <- 0 to pokerList.size - 2) {
-      val j = i + Random.nextInt(pokerList.size - i)
-      val temp = pokerList(i)
-      pokerList = pokerList.updated(i, pokerList(j))
-      pokerList = pokerList.updated(j, temp)
-    }
-    pokerList
-  }
 
-  def shufflePoker() {
-    this.currentPokers = getShuffledPoker
-  }
-
-  def dialPoker(number: Int) = {
-    if (currentPokers.size < number) shufflePoker()
-    val tempList = currentPokers.splitAt(number)
-    currentPokers = tempList._2
-    tempList._1.sortWith((e1, e2) => e1._2 < e2._2)
-  }
-}

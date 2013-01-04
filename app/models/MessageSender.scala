@@ -5,13 +5,13 @@ import play.api.libs.json.Json._
 import play.Logger
 
 /**
- * All the code is write by matt.cai and if you want use it, feel free!
+ * All the code is written by matt.cai and if you want use it, feel free!
  * User: matt.cai
  * Date: 1/3/13
  * Time: 11:11 AM
  * if you have problem here, please contact me: cysnake4713@gmail.com
  */
-object Message {
+object MessageSender {
 
   def finished() {
     notifyAll("finished", "", "")
@@ -70,7 +70,7 @@ object Message {
     notifyOne("switchresult", userName, jsonObj.toString())
   }
 
-  def sendMember(userName: String) {
+  def sendCurrentMemberToUser(userName: String) {
     notifyOne("members", userName, "")
   }
 
