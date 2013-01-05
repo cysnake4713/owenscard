@@ -78,7 +78,7 @@ Poker.Component = {
 					y : 95 * y,
 					width : 70,
 					height : 95
-				},
+				}
 			// draggable : true
 			});
 			poker.setPosition(-100, -100);
@@ -140,7 +140,7 @@ SuperLayer.prototype = {
 		// fontFamily : 'Calibri',
 		// fontStyle : 'italic',
 		offset : [ 75, 50 ],
-		cornerRadius : 10,
+		cornerRadius : 10
 	})
 }
 
